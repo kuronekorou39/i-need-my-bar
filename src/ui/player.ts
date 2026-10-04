@@ -1,5 +1,7 @@
 import { $ } from '../dom';
-import type { Playlist, TrackSource } from './playlist';
+import { bus } from '../events';
+import type { MusicPlayer } from '../music/player';
+import type { TrackSource } from '../music/types';
 
 const SOURCE_LABEL: Record<TrackSource, string> = { yt: 'YouTube から', bundle: '同梱曲', local: '手元の曲' };
 
@@ -8,59 +10,50 @@ const ICON_PAUSE =
   '<rect x="6.5" y="5.5" width="4" height="13" rx="1" fill="currentColor"/>' +
   '<rect x="13.5" y="5.5" width="4" height="13" rx="1" fill="currentColor"/>';
 
-// 段階1では音を鳴らさない。表示の切り替えだけを行う
-export function initPlayer(playlist: Playlist): void {
+export function initPlayer(player: MusicPlayer): void {
   const playBtn = $('#playBtn');
   const playIcon = $<SVGElement>('#playIcon');
   const title = $('#trackTitle');
   const source = $('#trackSrc');
   const status = $('#status');
 
-  let itemIndex = 0;
-  let trackIndex = 0;
   let playing = false;
+  let opened = false;
+  let notice = '';
 
-  const enabled = () => playlist.items().filter(item => item.on);
+  // 店の状態（注文やシェイク）は段階5で出す。それまでは再生の状態とお知らせを出す
+  const showStatus = () => {
+    if (notice) status.textContent = notice;
+    else if (playing) status.textContent = '音楽を流しています';
+    else status.textContent = opened ? '一時停止しています' : '再生すると、店が開きます';
+  };
 
-  function showTrack() {
-    const items = enabled();
-    if (!items.length) {
+  bus.on('music:track', track => {
+    if (!track.item) {
       title.textContent = '曲がありません';
       source.textContent = '設定から曲を追加してください';
       return;
     }
-    const item = items[itemIndex % items.length];
-    const tracks = item.tracks ?? [item.name];
-    title.textContent = tracks[trackIndex % tracks.length];
-    source.textContent = tracks.length > 1 ? `${SOURCE_LABEL[item.type]}・${item.name}` : SOURCE_LABEL[item.type];
-  }
+    title.textContent = track.title;
+    const label = SOURCE_LABEL[track.item.type];
+    // プレイリストの中の曲は、どのリストから流しているかも添える
+    source.textContent = track.title === track.item.name ? label : `${label}・${track.item.name}`;
+  });
 
-  function nextTrack() {
-    const items = enabled();
-    if (items.length) {
-      const item = items[itemIndex % items.length];
-      if (item.tracks && trackIndex < item.tracks.length - 1) {
-        trackIndex++;
-      } else {
-        trackIndex = 0;
-        itemIndex = (itemIndex + 1) % items.length;
-      }
-    }
-    showTrack();
-  }
-
-  function setPlaying(next: boolean) {
-    playing = next;
+  bus.on('music:state', state => {
+    playing = state.playing;
+    opened ||= playing;
     playIcon.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
     playBtn.setAttribute('aria-label', playing ? '一時停止' : '開店する（再生）');
-    status.textContent = playing ? '開店しました（音はまだ準備中です）' : '一時停止しています';
-  }
+    showStatus();
+  });
 
-  playBtn.addEventListener('click', () => setPlaying(!playing));
-  $('#nextBtn').addEventListener('click', nextTrack);
-  playlist.onChange(showTrack);
+  bus.on('music:notice', event => {
+    notice = event.text;
+    showStatus();
+  });
 
-  playIcon.innerHTML = ICON_PLAY;
-  status.textContent = '再生すると、店が開きます';
-  showTrack();
+  playBtn.addEventListener('click', () => player.toggle());
+  $('#nextBtn').addEventListener('click', () => player.next());
+  player.refresh();
 }

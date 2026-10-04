@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "playlist": [
+    { "id": "placeholder-01", "type": "bundle", "name": "（仮）テスト音 01", "src": "music/placeholder-01.wav", "on": true },
+    { "id": "placeholder-02", "type": "bundle", "name": "（仮）テスト音 02", "src": "music/placeholder-02.wav", "on": true }
+  ]
+}

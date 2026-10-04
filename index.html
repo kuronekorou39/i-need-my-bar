@@ -16,7 +16,7 @@
     <h1>I NEED MY BAR<span class="too">, too.</span></h1>
   </header>
   <figure class="frame">
-    <img class="scene" id="scene" alt="" decoding="async">
+    <canvas class="scene" id="scene"></canvas>
   </figure>
   <div class="caption">
     <p class="status" id="status" aria-live="polite"></p>
@@ -43,6 +43,9 @@
     </button>
   </section>
 </main>
+
+<!-- YouTube の規約により、プレイヤーは隠さずに表示する。YouTube の曲を流す間だけ出す -->
+<div id="ytDock" class="yt-dock" hidden><div id="ytPlayer"></div></div>
 
 <aside id="drawer" class="drawer" aria-label="設定" inert>
   <header>

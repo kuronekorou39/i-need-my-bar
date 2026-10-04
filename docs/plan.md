@@ -46,6 +46,8 @@
   "id": "cafe-window",
   "title": "窓際の席",
   "accent": "#D6AA3F",
+  "paper": "#FCF5EA",                      // ベース画像の地の色。ページの紙の色をこれに合わせる（絵は枠で囲まない）
+  "edgeFade": 0.04,                        // 絵の端を紙の色へぼかす幅（絵の幅に対する割合）。省略可
   "size": [2560, 1440],                    // 論理解像度。描画はこれを基準に拡縮する
   "base": "scenes/cafe-window/base.webp",
   "soundPack": "cafe",

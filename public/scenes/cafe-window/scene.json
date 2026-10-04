@@ -1,0 +1,10 @@
+{
+  "id": "cafe-window",
+  "title": "窓際の席",
+  "accent": "#D6AA3F",
+  "paper": "#FCF5EA",
+  "size": [2560, 1440],
+  "base": "scenes/cafe-window/base.webp",
+  "edgeFade": 0.04,
+  "layers": []
+}
