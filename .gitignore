@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+Thumbs.db
+
+# 素材の原本（大きいので手元にだけ置く。変換結果は public/scenes/ に入れる）
+assets/source/

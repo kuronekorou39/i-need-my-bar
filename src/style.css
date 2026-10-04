@@ -1,0 +1,99 @@
+:root{
+  --paper:#F6EFE2; --paper-2:#EDE3CF; --ink:#211C16; --ink-soft:#6A5F50;
+  /* 差し色はシーンごとに切り替える（scene.ts が上書きする） */
+  --accent:#D6AA3F; --accent-deep:#A8812A; --accent-hover:#E0B651;
+  --hand:"Klee One","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+  --ui:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--paper);color:var(--ink);font-family:var(--ui)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--accent-deep);outline-offset:3px}
+
+/* 余白のある一枚絵：画面に収まる最大サイズを計算し、周囲に紙を残す */
+.stage{--px:clamp(20px,7vw,120px);--py:clamp(18px,6vh,72px);
+  height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;
+  padding:var(--py) var(--px)}
+/* 190px は、絵以外（タイトル・状態の1行・プレイヤー）の高さの合計 */
+.stage>*{width:min(1040px,calc(100vw - 2 * var(--px)),calc((100dvh - 2 * var(--py) - 190px) * 16 / 9))}
+.mast{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+.mast h1{margin:0;font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(20px,2.2vw,28px);letter-spacing:.06em;line-height:1}
+.mast .too{font-family:var(--hand);font-weight:600;font-size:.82em;letter-spacing:.02em;color:var(--accent-deep);margin-left:.15em}
+.frame{margin:0;border:1.5px solid var(--ink);border-radius:3px;overflow:hidden;background:var(--paper);line-height:0}
+.scene{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.caption{display:flex;align-items:baseline;gap:20px;height:32px;margin-top:12px;line-height:32px}
+.status{flex:1;min-width:0;margin:0;font-family:var(--hand);font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.next{flex:none;margin:0;font-size:12px;color:var(--ink-soft)}
+
+/* プレイヤー：枠を持たない静かな一列 */
+.player{display:flex;align-items:center;gap:12px;margin-top:14px;padding-top:14px;border-top:1.5px solid rgba(33,28,22,.18)}
+.icon-btn{flex:none;width:40px;height:40px;border-radius:50%;border:2px solid var(--ink);background:var(--paper);
+  display:grid;place-items:center;cursor:pointer;padding:0}
+.icon-btn svg{width:18px;height:18px}
+.icon-btn.main{width:46px;height:46px;background:var(--accent)}
+.icon-btn.main svg{width:20px;height:20px}
+.icon-btn.flat{border-color:transparent;background:transparent}
+.icon-btn:hover{background:var(--paper-2)}
+.icon-btn.main:hover{background:var(--accent-hover)}
+.track{flex:1;min-width:0;line-height:1.35}
+.track .title{font-family:var(--hand);font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track .src{font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vol{display:flex;align-items:center;gap:6px}
+.vol svg{width:18px;height:18px;flex:none}
+input[type=range]{accent-color:var(--accent-deep)}
+.vol input{width:110px}
+
+/* 設定パネル */
+.drawer{position:fixed;top:0;right:0;height:100%;width:min(420px,100vw);background:var(--paper);
+  border-left:2px solid var(--ink);display:flex;flex-direction:column;transform:translateX(102%);
+  transition:transform .28s ease,visibility 0s linear .28s;visibility:hidden}
+.drawer.open{transform:none;visibility:visible;transition:transform .28s ease}
+.drawer header{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 10px 22px}
+.drawer h2{font-family:var(--hand);font-weight:600;font-size:20px;margin:0}
+.tabs{display:flex;gap:4px;margin:0 22px;border-bottom:2px solid var(--ink)}
+.tabs button{background:transparent;border:2px solid transparent;border-bottom:0;border-radius:8px 8px 0 0;
+  padding:7px 14px;margin-bottom:-2px;cursor:pointer;font-size:14px;color:var(--ink-soft)}
+.tabs button[aria-selected="true"]{border-color:var(--ink);background:var(--paper);color:var(--ink);font-weight:700}
+.panel{flex:1;overflow:auto;padding:16px 22px 24px}
+.panel[hidden]{display:none}
+.list{list-style:none;margin:0;padding:0}
+.item{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:10px;
+  padding:9px 2px;border-bottom:1.5px dashed rgba(33,28,22,.25)}
+.item.off .name,.item.off .badge{opacity:.4}
+.item input{accent-color:var(--accent-deep);width:16px;height:16px;margin:0}
+.badge{font-size:11px;padding:1px 7px;border-radius:999px;border:1.5px solid var(--ink);white-space:nowrap}
+.badge.bundle{background:var(--accent);border-color:var(--ink)}
+.badge.local{border-style:dashed}
+.name{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .ops{display:flex;gap:2px}
+.mini{width:28px;height:28px;border:0;background:transparent;border-radius:6px;cursor:pointer;display:grid;place-items:center;padding:0}
+.mini:hover{background:var(--paper-2)}
+.mini svg{width:14px;height:14px}
+.mini:disabled{opacity:.25;cursor:default}
+.add{display:flex;gap:8px;margin:16px 0 6px}
+.add input{flex:1;min-width:0;border:2px solid var(--ink);border-radius:8px;background:var(--paper);padding:7px 10px;font:inherit;font-size:13px}
+.btn{border:2px solid var(--ink);background:var(--paper);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--paper-2)}
+.btn.fill{background:var(--accent)}
+.msg{font-size:12px;color:#9A4B2A;min-height:1.5em;margin:0}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.note{font-size:12px;color:var(--ink-soft);line-height:1.7;margin:18px 0 0}
+.field{margin:0 0 18px}
+.field label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:2px}
+.field output{color:var(--ink-soft)}
+.field input[type=range]{width:100%}
+.check{display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer}
+.check input{accent-color:var(--accent-deep)}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media (max-width:640px){
+  .stage>*{width:calc(100vw - 2 * var(--px))}
+  .scene{aspect-ratio:4/3}
+  .caption{flex-direction:column;gap:0;height:52px;line-height:1.6;align-items:flex-start}
+  .status{width:100%}
+  .vol{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .drawer{transition:none}
+}

@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>I NEED MY BAR.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Klee+One:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F6EFE2; --paper-2:#EDE3CF; --ink:#211C16; --ink-soft:#6A5F50;
+  --mustard:#D6AA3F; --mustard-deep:#A8812A;
+  --hand:"Klee One","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+  --ui:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--paper);color:var(--ink);font-family:var(--ui)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--mustard-deep);outline-offset:3px}
+
+/* 余白のある一枚絵：画面に収まる最大サイズを計算し、周囲に紙を残す */
+.stage{--px:clamp(20px,7vw,120px);--py:clamp(18px,6vh,72px);
+  height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;
+  padding:var(--py) var(--px)}
+.stage>*{width:min(1040px,calc(100vw - 2 * var(--px)),calc((100dvh - 2 * var(--py) - 190px) * 16 / 9))}
+.mast{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+.mast h1{margin:0;font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(20px,2.2vw,28px);letter-spacing:.06em;line-height:1}
+.mast .too{font-family:var(--hand);font-weight:600;font-size:.82em;letter-spacing:.02em;color:var(--mustard-deep);margin-left:.15em}
+.frame{margin:0;border:1.5px solid var(--ink);border-radius:3px;overflow:hidden;background:var(--paper);line-height:0}
+.scene{display:block;width:100%;height:auto;aspect-ratio:16/9}
+.caption{display:flex;align-items:baseline;gap:20px;height:32px;margin-top:12px;line-height:32px}
+.status{flex:1;min-width:0;margin:0;font-family:var(--hand);font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.next{flex:none;margin:0;font-size:12px;color:var(--ink-soft)}
+
+.glow{transition:opacity .9s ease}
+body.paused .glow{opacity:0}
+#ring{visibility:hidden}
+body.shaking #shaker,body.shaking #shakerShadow{visibility:hidden}
+body.shaking #ring{visibility:visible}
+#cocktail{transition:opacity .6s ease}
+body:not(.served) #cocktail{opacity:0}
+
+/* プレイヤー：枠を持たない静かな一列 */
+.player{display:flex;align-items:center;gap:12px;margin-top:14px;padding-top:14px;border-top:1.5px solid rgba(33,28,22,.18)}
+.icon-btn{flex:none;width:40px;height:40px;border-radius:50%;border:2px solid var(--ink);background:var(--paper);
+  display:grid;place-items:center;cursor:pointer;padding:0}
+.icon-btn svg{width:18px;height:18px}
+.icon-btn.main{width:46px;height:46px;background:var(--mustard)}
+.icon-btn.main svg{width:20px;height:20px}
+.icon-btn.flat{border-color:transparent;background:transparent}
+.icon-btn:hover{background:var(--paper-2)}
+.icon-btn.main:hover{background:#E0B651}
+.track{flex:1;min-width:0;line-height:1.35}
+.track .title{font-family:var(--hand);font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track .src{font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vol{display:flex;align-items:center;gap:6px}
+.vol svg{width:18px;height:18px;flex:none}
+input[type=range]{accent-color:var(--mustard-deep)}
+.vol input{width:110px}
+
+/* 設定パネル */
+.drawer{position:fixed;top:0;right:0;height:100%;width:min(420px,100vw);background:var(--paper);
+  border-left:2px solid var(--ink);display:flex;flex-direction:column;transform:translateX(102%);
+  transition:transform .28s ease,visibility 0s linear .28s;visibility:hidden}
+.drawer.open{transform:none;visibility:visible;transition:transform .28s ease}
+.drawer header{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 10px 22px}
+.drawer h2{font-family:var(--hand);font-weight:600;font-size:20px;margin:0}
+.tabs{display:flex;gap:4px;margin:0 22px;border-bottom:2px solid var(--ink)}
+.tabs button{background:transparent;border:2px solid transparent;border-bottom:0;border-radius:8px 8px 0 0;
+  padding:7px 14px;margin-bottom:-2px;cursor:pointer;font-size:14px;color:var(--ink-soft)}
+.tabs button[aria-selected="true"]{border-color:var(--ink);background:var(--paper);color:var(--ink);font-weight:700}
+.panel{flex:1;overflow:auto;padding:16px 22px 24px}
+.panel[hidden]{display:none}
+.list{list-style:none;margin:0;padding:0}
+.item{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:10px;
+  padding:9px 2px;border-bottom:1.5px dashed rgba(33,28,22,.25)}
+.item.off .name,.item.off .badge{opacity:.4}
+.item input{accent-color:var(--mustard-deep);width:16px;height:16px;margin:0}
+.badge{font-size:11px;padding:1px 7px;border-radius:999px;border:1.5px solid var(--ink);white-space:nowrap}
+.badge.bundle{background:var(--mustard);border-color:var(--ink)}
+.badge.local{border-style:dashed}
+.name{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .ops{display:flex;gap:2px}
+.mini{width:28px;height:28px;border:0;background:transparent;border-radius:6px;cursor:pointer;display:grid;place-items:center;padding:0}
+.mini:hover{background:var(--paper-2)}
+.mini svg{width:14px;height:14px}
+.mini:disabled{opacity:.25;cursor:default}
+.add{display:flex;gap:8px;margin:16px 0 6px}
+.add input{flex:1;min-width:0;border:2px solid var(--ink);border-radius:8px;background:var(--paper);padding:7px 10px;font:inherit;font-size:13px}
+.btn{border:2px solid var(--ink);background:var(--paper);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--paper-2)}
+.btn.fill{background:var(--mustard)}
+.msg{font-size:12px;color:#9A4B2A;min-height:1.5em;margin:0}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.note{font-size:12px;color:var(--ink-soft);line-height:1.7;margin:18px 0 0}
+.field{margin:0 0 18px}
+.field label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:2px}
+.field output{color:var(--ink-soft)}
+.field input[type=range]{width:100%}
+.check{display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer}
+.check input{accent-color:var(--mustard-deep)}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media (max-width:640px){
+  .stage>*{width:calc(100vw - 2 * var(--px))}
+  .scene{aspect-ratio:4/3}
+  .caption{flex-direction:column;gap:0;height:52px;line-height:1.6;align-items:flex-start}
+  .status{width:100%}
+  .vol{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .drawer,.glow,#cocktail{transition:none}
+}
+</style>
+</head>
+<body class="paused">
+
+<main class="stage">
+  <header class="mast">
+    <h1>I NEED MY BAR<span class="too">, too.</span></h1>
+  </header>
+  <figure class="frame">
+    <svg class="scene" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <defs>
+    <pattern id="dotsLight" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><circle cx="3.5" cy="3.5" r="0.95" fill="#211C16"/></pattern>
+    <pattern id="dotsMed" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><circle cx="3" cy="3" r="1.25" fill="#211C16"/></pattern>
+    <pattern id="dotsDense" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><circle cx="2.5" cy="2.5" r="1.7" fill="#211C16"/></pattern>
+    <pattern id="dotsMustard" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><circle cx="3.5" cy="3.5" r="1.6" fill="#D6AA3F"/></pattern>
+    <linearGradient id="coneFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <mask id="coneMask"><rect x="0" y="0" width="1600" height="900" fill="url(#coneFade)"/></mask>
+    <filter id="rough" x="-2%" y="-2%" width="104%" height="104%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="7"/>
+      <feDisplacementMap in="SourceGraphic" scale="3"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="900" fill="#F6EFE2"/>
+  <g id="back" filter="url(#rough)" fill="none" stroke="#211C16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></g>
+  <g id="shakerLayer" filter="url(#rough)" fill="none" stroke="#211C16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></g>
+  <g id="front" filter="url(#rough)" fill="none" stroke="#211C16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></g>
+  <g id="specks"></g>
+</svg>
+  </figure>
+  <div class="caption">
+    <p class="status" id="status" aria-live="polite">再生すると、灯りがつきます</p>
+    <p class="next" id="next"></p>
+  </div>
+  <section class="player" aria-label="プレイヤー">
+  <button id="playBtn" class="icon-btn main" aria-label="開店する（再生）">
+    <svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5.5v13l10.5-6.5z" fill="#211C16"/></svg>
+  </button>
+  <button id="nextBtn" class="icon-btn flat" aria-label="次の曲">
+    <svg viewBox="0 0 24 24"><path d="M5 5.5v13l9-6.5z" fill="#211C16"/><path d="M18 5.5v13" stroke="#211C16" stroke-width="2.6" stroke-linecap="round"/></svg>
+  </button>
+  <div class="track">
+    <div class="title" id="trackTitle">—</div>
+    <div class="src" id="trackSrc"></div>
+  </div>
+  <span class="sep" aria-hidden="true"></span>
+  <label class="vol">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h4l5-4v13l-5-4H4z" fill="#211C16"/><path d="M16.5 9a4.2 4.2 0 0 1 0 6M19 6.5a7.8 7.8 0 0 1 0 11" fill="none" stroke="#211C16" stroke-width="2" stroke-linecap="round"/></svg>
+    <span class="visually-hidden">全体の音量</span>
+    <input id="vol" type="range" min="0" max="100" value="80">
+  </label>
+  <button id="settingsBtn" class="icon-btn flat" aria-label="設定" aria-expanded="false" aria-controls="drawer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#211C16" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.6" fill="#F6EFE2"/><circle cx="15" cy="17" r="2.6" fill="#F6EFE2"/></svg>
+  </button>
+</section>
+</main>
+
+<aside id="drawer" class="drawer" aria-label="設定" inert>
+  <header>
+    <h2>設定</h2>
+    <button id="closeBtn" class="icon-btn flat" aria-label="設定を閉じる">
+      <svg viewBox="0 0 24 24" stroke="#211C16" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </header>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-list" aria-selected="true" aria-controls="panel-list">曲のリスト</button>
+    <button role="tab" id="tab-mix" aria-selected="false" aria-controls="panel-mix">音のバランス</button>
+  </div>
+
+  <div class="panel" id="panel-list" role="tabpanel" aria-labelledby="tab-list">
+    <ol class="list" id="list"></ol>
+    <div class="add">
+      <input id="urlInput" type="text" placeholder="YouTube の動画・プレイリストの URL" aria-label="YouTube の URL">
+      <button id="addUrl" class="btn fill">追加</button>
+    </div>
+    <p class="msg" id="addMsg"></p>
+    <div class="row">
+      <button class="btn" id="addFile">手元の曲を追加</button>
+      <input type="file" id="fileInput" accept="audio/*" multiple class="visually-hidden" tabindex="-1">
+      <button class="btn" id="exportBtn">書き出す</button>
+      <button class="btn" id="importBtn">読み込む</button>
+      <input type="file" id="importInput" accept="application/json" class="visually-hidden" tabindex="-1">
+      <button class="btn" id="resetBtn">初期状態に戻す</button>
+    </div>
+    <p class="note">上から順に流します。YouTube に接続できないときは、同梱曲に切り替えて流し続けます。</p>
+  </div>
+
+  <div class="panel" id="panel-mix" role="tabpanel" aria-labelledby="tab-mix" hidden>
+    <div class="field"><label for="m-master">全体 <output data-for="m-master"></output></label><input id="m-master" type="range" min="0" max="100" value="80"></div>
+    <div class="field"><label for="m-bgm">音楽 <output data-for="m-bgm"></output></label><input id="m-bgm" type="range" min="0" max="100" value="60"></div>
+    <div class="field"><label for="m-crowd">店内のざわめき <output data-for="m-crowd"></output></label><input id="m-crowd" type="range" min="0" max="100" value="40"></div>
+    <div class="field"><label for="m-sfx">カウンターの作業音 <output data-for="m-sfx"></output></label><input id="m-sfx" type="range" min="0" max="100" value="70"></div>
+    <div class="field"><label for="m-interval">注文の間隔 <output data-for="m-interval"></output></label><input id="m-interval" type="range" min="1" max="20" value="5"></div>
+    <label class="check"><input type="checkbox" id="m-duck" checked> カクテルを作る間は音楽を少し下げる</label>
+  </div>
+</aside>
+<script>
+(() => {
+'use strict';
+const NS = 'http://www.w3.org/2000/svg';
+const INK = '#211C16', PAPER = '#F6EFE2', PAPER2 = '#EDE3CF', MUST = '#D6AA3F';
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+let seed = 11;
+const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+const R = (a, b) => a + rnd() * (b - a);
+
+const back = document.getElementById('back');
+const shakerLayer = document.getElementById('shakerLayer');
+const front = document.getElementById('front');
+const specks = document.getElementById('specks');
+
+/* ---------- 窓（夜の通り） ---------- */
+{
+  const g = el('g', {}, back);
+  el('rect', { x: 40, y: 50, width: 480, height: 470, fill: PAPER }, g);
+  el('rect', { x: 62, y: 72, width: 200, height: 426, fill: 'url(#dotsDense)', stroke: 'none' }, g);
+  el('rect', { x: 298, y: 72, width: 200, height: 426, fill: 'url(#dotsDense)', stroke: 'none' }, g);
+  const street = el('g', { stroke: PAPER, 'stroke-width': 2.2 }, g);
+  // 向かいの建物
+  el('path', { d: 'M62 200 H190 V498 M190 250 H262' }, street);
+  el('path', { d: 'M298 170 H420 V498 M420 230 H498' }, street);
+  [[90, 230], [140, 230], [90, 300], [140, 300], [325, 210], [375, 210], [325, 280], [375, 290]].forEach(([x, y], i) => {
+    el('rect', { x, y, width: 26, height: 34, fill: i % 3 === 1 ? PAPER : MUST, stroke: 'none' }, g);
+  });
+  // 月と街灯
+  el('circle', { cx: 225, cy: 125, r: 18, fill: PAPER, stroke: 'none' }, g);
+  el('path', { d: 'M455 498 V300 Q455 282 437 282' }, street);
+  el('circle', { cx: 437, cy: 300, r: 40, fill: 'url(#dotsMustard)', stroke: 'none', opacity: 0.9 }, g);
+  el('path', { d: 'M428 282 h18 l-4 10 h-10 z', fill: MUST, stroke: PAPER, 'stroke-width': 1.5 }, g);
+  el('path', { d: 'M62 470 L262 455 M298 452 L498 440', 'stroke-dasharray': '10 12' }, street);
+  // 窓枠
+  el('rect', { x: 40, y: 50, width: 480, height: 470 }, g);
+  el('rect', { x: 62, y: 72, width: 200, height: 426 }, g);
+  el('rect', { x: 298, y: 72, width: 200, height: 426 }, g);
+  el('path', { d: 'M262 72 V498 M298 72 V498 M276 90 V480 M284 90 V480', 'stroke-width': 2 }, g);
+  el('rect', { x: 28, y: 520, width: 504, height: 18, fill: PAPER }, g);
+}
+
+/* ---------- 奥の棚とボトル ---------- */
+{
+  const g = el('g', {}, back);
+  el('rect', { x: 590, y: 80, width: 820, height: 400, fill: 'url(#dotsLight)', stroke: 'none', opacity: 0.55 }, g);
+  el('rect', { x: 590, y: 80, width: 820, height: 400 }, g);
+  const shelves = [240, 395];
+  const fills = [PAPER, 'url(#dotsMed)', MUST, PAPER, 'url(#dotsDense)', PAPER, 'url(#dotsLight)'];
+  shelves.forEach((base, si) => {
+    let x = 625 + R(0, 15);
+    while (x < 1370) {
+      const type = rnd();
+      if (si === 1 && rnd() < 0.18) { // 伏せたグラス
+        const w = R(34, 42);
+        el('path', { d: `M${x} ${base} l4 -40 h${w - 8} l4 40 z`, fill: PAPER }, g);
+        el('path', { d: `M${x + 7} ${base - 32} h${w - 14}`, 'stroke-width': 1.6 }, g);
+        x += w + R(10, 20);
+        continue;
+      }
+      const w = type < 0.33 ? R(34, 44) : type < 0.66 ? R(28, 34) : R(40, 52);
+      const hb = type < 0.33 ? R(70, 92) : type < 0.66 ? R(92, 110) : R(56, 70);
+      const sh = type < 0.33 ? w * 0.18 : w * 0.55;
+      const nw = type < 0.66 ? w * 0.32 : w * 0.38;
+      const nh = type < 0.33 ? R(14, 22) : type < 0.66 ? R(30, 40) : R(10, 16);
+      const cx = x + w / 2, top = base - hb;
+      const fill = fills[Math.floor(rnd() * fills.length)];
+      el('path', {
+        d: `M${cx - w / 2} ${base} V${top + sh} Q${cx - w / 2} ${top} ${cx - nw / 2} ${top - 2} V${top - nh} H${cx + nw / 2} V${top - 2} Q${cx + w / 2} ${top} ${cx + w / 2} ${top + sh} V${base} Z`,
+        fill,
+      }, g);
+      el('rect', { x: cx - nw / 2 - 2, y: top - nh - 8, width: nw + 4, height: 9, rx: 2, fill: rnd() < 0.3 ? MUST : INK }, g);
+      if (fill !== MUST && rnd() < 0.7) {
+        el('rect', { x: cx - w * 0.36, y: base - hb * 0.62, width: w * 0.72, height: hb * 0.3, fill: PAPER, 'stroke-width': 2 }, g);
+        el('path', { d: `M${cx - w * 0.22} ${base - hb * 0.5} h${w * 0.44}`, 'stroke-width': 1.5 }, g);
+      }
+      x += w + R(8, 18);
+    }
+    el('rect', { x: 605, y: base, width: 790, height: 13, fill: PAPER }, g);
+    el('path', { d: `M640 ${base + 13} v14 M1360 ${base + 13} v14`, 'stroke-width': 2.5 }, g);
+  });
+  // バックカウンター
+  el('rect', { x: 590, y: 480, width: 820, height: 80, fill: PAPER }, g);
+  el('path', { d: 'M590 500 H1410', 'stroke-width': 2 }, g);
+}
+
+/* ---------- レンガの壁 ---------- */
+{
+  const g = el('g', { 'stroke-width': 2.4 }, back);
+  el('path', { d: 'M1460 0 V560' }, g);
+  for (let y = 26, i = 0; y < 560; y += 30, i++) {
+    el('path', { d: `M1460 ${y} H1600` }, g);
+    el('path', { d: `M${i % 2 ? 1530 : 1495} ${y} v-30 M${i % 2 ? 1590 : 1565} ${y} v-30`, 'stroke-width': 1.8 }, g);
+  }
+}
+
+/* ---------- ペンダントライト ---------- */
+const LAMPS = [[800, 22], [1200, 12]];
+const glow = el('g', { class: 'glow' });
+back.insertBefore(glow, back.children[1]); // 棚より奥に光を置く
+LAMPS.forEach(([x, cordEnd]) => {
+  el('path', { d: `M${x - 62} ${cordEnd + 78} L${x + 62} ${cordEnd + 78} L${x + 210} 590 L${x - 210} 590 Z`, fill: 'url(#dotsMustard)', stroke: 'none', opacity: 0.75 }, glow);
+});
+LAMPS.forEach(([x, cordEnd]) => {
+  el('path', { d: `M${x} 0 V${cordEnd}`, 'stroke-width': 2 }, back);
+  el('path', { d: `M${x - 14} ${cordEnd} H${x + 14} L${x + 62} ${cordEnd + 78} H${x - 62} Z`, fill: MUST }, back);
+  el('path', { d: `M${x - 16} ${cordEnd + 78} A16 12 0 0 0 ${x + 16} ${cordEnd + 78}`, fill: PAPER, class: 'bulb' }, back);
+});
+
+/* ---------- カウンター ---------- */
+{
+  const g = el('g', {}, back);
+  el('path', { d: 'M0 585 L1600 552 L1600 690 L0 735 Z', fill: PAPER }, g);
+  [[120, 640, 330], [520, 612, 760], [900, 660, 1180], [1260, 600, 1480], [300, 700, 560]].forEach(([x1, y, x2]) => {
+    el('path', { d: `M${x1} ${y} L${x2} ${y - (x2 - x1) * 0.021}`, 'stroke-width': 1.6 }, g);
+  });
+  el('path', { d: 'M0 735 L1600 690 L1600 714 L0 760 Z', fill: PAPER2 }, g);
+  el('path', { d: 'M0 760 L1600 714 L1600 900 L0 900 Z', fill: 'url(#dotsMed)', stroke: 'none', opacity: 0.8 }, g);
+  el('path', { d: 'M0 760 L1600 714' }, g);
+  for (let x = 160; x < 1600; x += 180) el('path', { d: `M${x} ${760 - x * 0.0287} V900`, 'stroke-width': 2 }, g);
+}
+
+/* カウンターに落ちる灯り */
+{
+  const pools = el('g', { class: 'glow' }, back);
+  el('ellipse', { cx: 800, cy: 604, rx: 240, ry: 34, fill: 'url(#dotsMustard)', stroke: 'none' }, pools);
+  el('ellipse', { cx: 1200, cy: 594, rx: 240, ry: 32, fill: 'url(#dotsMustard)', stroke: 'none' }, pools);
+}
+
+/* ---------- シェイカー（状態で差し替える） ---------- */
+{
+  // 影は本体と別レイヤー。持ち上げたら本体と影が消え、濡れた跡だけが残る
+  el('ellipse', { id: 'shakerShadow', cx: 930, cy: 620, rx: 44, ry: 7, fill: 'url(#dotsMed)', stroke: 'none', opacity: 0.6 }, shakerLayer);
+  el('ellipse', { id: 'ring', cx: 930, cy: 618, rx: 30, ry: 5, 'stroke-width': 1.6, 'stroke-dasharray': '5 6', opacity: 0.55 }, shakerLayer);
+  const g = el('g', { id: 'shaker' }, shakerLayer);
+  el('path', { d: 'M900 618 L960 618 L955 520 L905 520 Z', fill: PAPER }, g);
+  el('path', { d: 'M942 528 L946 612', 'stroke-width': 9, stroke: 'url(#dotsMed)' }, g);
+  el('path', { d: 'M907 520 L953 520 L945 488 L915 488 Z', fill: PAPER }, g);
+  el('rect', { x: 918, y: 466, width: 24, height: 22, rx: 6, fill: MUST }, g);
+  el('path', { d: 'M903 548 H957', 'stroke-width': 2 }, g);
+}
+
+/* ---------- 手前のもの ---------- */
+{
+  const g = front;
+  // 開いたノート
+  el('path', { d: 'M170 652 L312 632 L322 702 L184 724 Z', fill: PAPER }, g);
+  el('path', { d: 'M312 632 L456 620 L470 690 L322 702 Z', fill: PAPER }, g);
+  el('path', { d: 'M184 724 L322 702 L470 690 L472 698 L322 711 L186 732 Z', fill: MUST }, g);
+  [[192, 660, 296], [196, 676, 300], [200, 692, 290], [334, 646, 440], [336, 662, 446], [339, 678, 420]].forEach(([x1, y, x2]) => {
+    el('path', { d: `M${x1} ${y} L${x2} ${y - (x2 - x1) * 0.13}`, 'stroke-width': 1.8 }, g);
+  });
+  el('path', { d: 'M486 704 L566 668', 'stroke-width': 7, stroke: MUST }, g);
+  el('path', { d: 'M486 704 L566 668 M480 707 l6 -3', 'stroke-width': 2 }, g);
+  // ロックグラス
+  el('ellipse', { cx: 640, cy: 690, rx: 62, ry: 11, fill: PAPER2 }, g);
+  el('path', { d: 'M606 640 L674 640 L670 690 L610 690 Z', fill: MUST, stroke: 'none' }, g);
+  el('path', { d: 'M615 652 l16 -8 l8 12 l-15 8 z M640 648 l18 -2 l2 15 l-17 3 z', fill: PAPER, 'stroke-width': 1.8 }, g);
+  el('path', { d: 'M600 604 L680 604 L672 690 L608 690 Z' }, g);
+  el('path', { d: 'M606 640 H674', 'stroke-width': 2 }, g);
+  el('path', { d: 'M664 616 L660 676', 'stroke-width': 2, stroke: PAPER }, g);
+  // カクテルグラス（できあがると注がれる）
+  el('ellipse', { cx: 1180, cy: 642, rx: 36, ry: 7, fill: PAPER }, g);
+  el('path', { d: 'M1180 642 V586' }, g);
+  const ck = el('g', { id: 'cocktail' }, g);
+  el('path', { d: 'M1140 537 L1220 537 L1181 582 Z', fill: MUST, stroke: 'none' }, ck);
+  el('path', { d: 'M1206 512 L1168 566', 'stroke-width': 2 }, ck);
+  el('circle', { cx: 1174, cy: 557, r: 7, fill: '#8A9A4A', 'stroke-width': 2 }, ck);
+  el('path', { d: 'M1128 524 L1232 524 L1180 586 Z' }, g);
+  // キャンドル
+  el('rect', { x: 1322, y: 560, width: 38, height: 42, rx: 5, fill: 'url(#dotsLight)' }, g);
+  el('path', { d: 'M1341 560 v-6', 'stroke-width': 2 }, g);
+  el('path', { d: 'M1341 532 q9 12 0 22 q-9 -10 0 -22 z', fill: MUST, 'stroke-width': 2 }, g);
+  // スツール
+  el('path', { d: 'M1270 900 L1290 845 M1490 900 L1470 845 M1330 900 L1338 860 M1430 900 L1422 860' }, g);
+  el('path', { d: 'M1225 818 Q1225 860 1380 862 Q1535 860 1535 818', fill: PAPER }, g);
+  el('ellipse', { cx: 1380, cy: 816, rx: 155, ry: 34, fill: MUST }, g);
+  el('path', { d: 'M1270 806 Q1380 790 1490 806', 'stroke-width': 1.8, stroke: PAPER }, g);
+}
+
+/* ---------- 紙の粒 ---------- */
+for (let i = 0; i < 260; i++) {
+  el('circle', { cx: R(0, 1600), cy: R(0, 900), r: R(0.6, 2), fill: rnd() < 0.3 ? MUST : INK, opacity: R(0.12, 0.35) }, specks);
+}
+
+/* ====================== モックの動作 ====================== */
+const $ = s => document.querySelector(s);
+const DEFAULT_LIST = [
+  { type: 'yt', name: 'Jazz Bar Night（プレイリスト）', tracks: ['Smoke & Brass', 'After Hours', 'Blue Corner'], on: true },
+  { type: 'yt', name: 'Late Night Piano Trio', tracks: ['Late Night Piano Trio'], on: true },
+  { type: 'bundle', name: '夜更けのトリオ 01', on: true },
+  { type: 'bundle', name: '夜更けのトリオ 02', on: true },
+  { type: 'bundle', name: 'ブラシとベース', on: true },
+  { type: 'local', name: 'favorite-ballad.mp3', on: false },
+];
+const TYPE_LABEL = { yt: 'YouTube', bundle: '同梱', local: '手元' };
+const SRC_LABEL = { yt: 'YouTube から', bundle: '同梱曲', local: '手元の曲' };
+let list = JSON.parse(JSON.stringify(DEFAULT_LIST));
+let cur = 0, sub = 0, playing = false;
+
+function setTrack() {
+  const on = list.filter(x => x.on);
+  if (!on.length) { $('#trackTitle').textContent = '曲がありません'; $('#trackSrc').textContent = '設定から曲を追加してください'; return; }
+  const it = on[cur % on.length];
+  const title = it.tracks ? it.tracks[sub % it.tracks.length] : it.name;
+  $('#trackTitle').textContent = title;
+  $('#trackSrc').textContent = it.tracks && it.tracks.length > 1 ? `${SRC_LABEL[it.type]}・${it.name}` : SRC_LABEL[it.type];
+}
+function nextTrack() {
+  const on = list.filter(x => x.on);
+  if (!on.length) return setTrack();
+  const it = on[cur % on.length];
+  if (it.tracks && sub < it.tracks.length - 1) sub++;
+  else { sub = 0; cur = (cur + 1) % on.length; }
+  setTrack();
+}
+
+const PLAY_SVG = '<path d="M8 5.5v13l10.5-6.5z" fill="#211C16"/>';
+const PAUSE_SVG = '<rect x="6.5" y="5.5" width="4" height="13" rx="1" fill="#211C16"/><rect x="13.5" y="5.5" width="4" height="13" rx="1" fill="#211C16"/>';
+function setPlaying(p) {
+  playing = p;
+  document.body.classList.toggle('paused', !p);
+  $('#playIcon').innerHTML = p ? PAUSE_SVG : PLAY_SVG;
+  $('#playBtn').setAttribute('aria-label', p ? '一時停止' : '開店する（再生）');
+  if (p) runDemo(); else { stopDemo(); setStatus('一時停止しています'); $('#next').textContent = ''; }
+}
+
+/* 注文のデモ */
+const SEQ = [
+  ['マスターがグラスを磨いています', 7000, 'idle'],
+  ['ギムレットの注文が入りました', 2500],
+  ['ジンを量って注いでいます', 2500],
+  ['ライムジュースを注いでいます', 2200],
+  ['シェイカーに氷を詰めています', 2200],
+  ['シェイカーを手に取り、シェイクしています', 4200, 'shake'],
+  ['グラスに注ぎ分けています', 2600, 'serve'],
+  ['ギムレットができあがりました', 6000, 'serve'],
+  ['アイスピックで氷を割っています', 5000, 'idle'],
+];
+let step = 0, timer = null;
+function setStatus(s) { $('#status').textContent = s; }
+function runDemo() {
+  clearTimeout(timer);
+  const [text, ms, mode] = SEQ[step];
+  setStatus(text);
+  document.body.classList.toggle('shaking', mode === 'shake');
+  document.body.classList.toggle('served', mode === 'serve');
+  $('#next').textContent = mode === 'idle' ? '次の注文まで、およそ 3 分' : '';
+  timer = setTimeout(() => { step = (step + 1) % SEQ.length; runDemo(); }, ms);
+}
+function stopDemo() { clearTimeout(timer); document.body.classList.remove('shaking'); }
+
+/* 設定パネル */
+const drawer = $('#drawer');
+function openDrawer(open) {
+  drawer.classList.toggle('open', open);
+  drawer.inert = !open;
+  $('#settingsBtn').setAttribute('aria-expanded', String(open));
+  if (open) $('#closeBtn').focus(); else $('#settingsBtn').focus();
+}
+$('#settingsBtn').onclick = () => openDrawer(!drawer.classList.contains('open'));
+$('#closeBtn').onclick = () => openDrawer(false);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawer.classList.contains('open')) openDrawer(false); });
+document.querySelectorAll('[role=tab]').forEach(t => t.onclick = () => {
+  document.querySelectorAll('[role=tab]').forEach(x => {
+    const sel = x === t;
+    x.setAttribute('aria-selected', String(sel));
+    document.getElementById(x.getAttribute('aria-controls')).hidden = !sel;
+  });
+});
+
+const UP = '<svg viewBox="0 0 24 24" fill="none" stroke="#211C16" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>';
+const DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="#211C16" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+const DEL = '<svg viewBox="0 0 24 24" fill="none" stroke="#211C16" stroke-width="2.4" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>';
+function renderList() {
+  const ol = $('#list'); ol.textContent = '';
+  list.forEach((it, i) => {
+    const li = document.createElement('li'); li.className = 'item' + (it.on ? '' : ' off');
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = it.on; cb.setAttribute('aria-label', `${it.name} を流す`);
+    cb.onchange = () => { it.on = cb.checked; renderList(); setTrack(); };
+    const b = document.createElement('span'); b.className = 'badge ' + it.type; b.textContent = TYPE_LABEL[it.type];
+    const n = document.createElement('span'); n.className = 'name'; n.textContent = it.name; n.title = it.name;
+    const ops = document.createElement('span'); ops.className = 'ops';
+    const mk = (svg, label, fn, dis) => { const x = document.createElement('button'); x.className = 'mini'; x.innerHTML = svg; x.setAttribute('aria-label', label); x.disabled = !!dis; x.onclick = fn; ops.append(x); };
+    mk(UP, `${it.name} を上へ`, () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; renderList(); }, i === 0);
+    mk(DOWN, `${it.name} を下へ`, () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; renderList(); }, i === list.length - 1);
+    mk(DEL, `${it.name} を削除`, () => { list.splice(i, 1); renderList(); setTrack(); });
+    li.append(cb, b, n, ops); ol.append(li);
+  });
+}
+$('#addUrl').onclick = () => {
+  const v = $('#urlInput').value.trim();
+  if (!/youtu\.?be/.test(v)) { $('#addMsg').textContent = 'YouTube の動画かプレイリストの URL を貼ってください'; return; }
+  const isList = /[?&]list=/.test(v);
+  list.push({ type: 'yt', name: isList ? '追加したプレイリスト' : '追加した動画', tracks: [isList ? '追加したプレイリスト' : '追加した動画'], on: true });
+  $('#urlInput').value = ''; $('#addMsg').textContent = ''; renderList(); setTrack();
+};
+$('#addFile').onclick = () => $('#fileInput').click();
+$('#fileInput').onchange = e => { Array.from(e.target.files).forEach(f => list.push({ type: 'local', name: f.name, on: true })); e.target.value = ''; renderList(); setTrack(); };
+$('#exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify({ version: 1, playlist: list }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'bar-yofuke-playlist.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('#importBtn').onclick = () => $('#importInput').click();
+$('#importInput').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try { const data = JSON.parse(await f.text()); if (!Array.isArray(data.playlist)) throw 0; list = data.playlist; renderList(); setTrack(); $('#addMsg').textContent = ''; }
+  catch (er) { $('#addMsg').textContent = 'このファイルは曲のリストとして読み込めませんでした'; }
+};
+$('#resetBtn').onclick = () => { list = JSON.parse(JSON.stringify(DEFAULT_LIST)); cur = sub = 0; renderList(); setTrack(); };
+
+/* 音量（モックなので表示のみ） */
+const FMT = { 'm-interval': v => `約 ${v} 分おき` };
+document.querySelectorAll('.panel input[type=range]').forEach(r => {
+  const o = document.querySelector(`output[data-for="${r.id}"]`);
+  const upd = () => { o.textContent = (FMT[r.id] || (v => v))(r.value); };
+  r.addEventListener('input', upd); upd();
+});
+const syncVol = (a, b) => a.addEventListener('input', () => { b.value = a.value; b.dispatchEvent(new Event('input')); });
+syncVol($('#vol'), $('#m-master'));
+$('#m-master').addEventListener('input', () => { $('#vol').value = $('#m-master').value; });
+
+$('#playBtn').onclick = () => setPlaying(!playing);
+$('#nextBtn').onclick = nextTrack;
+renderList(); setTrack();
+})();
+</script>
+</body></html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>I NEED MY BAR.</title>
+<meta name="description" content="バーやカフェの一枚絵を眺めながら、ジャズと店の環境音を流し続ける作業用BGMサイト。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Klee+One:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<main class="stage">
+  <header class="mast">
+    <h1>I NEED MY BAR<span class="too">, too.</span></h1>
+  </header>
+  <figure class="frame">
+    <img class="scene" id="scene" alt="" decoding="async">
+  </figure>
+  <div class="caption">
+    <p class="status" id="status" aria-live="polite"></p>
+    <p class="next" id="next"></p>
+  </div>
+  <section class="player" aria-label="プレイヤー">
+    <button id="playBtn" class="icon-btn main" aria-label="開店する（再生）">
+      <svg viewBox="0 0 24 24" id="playIcon"></svg>
+    </button>
+    <button id="nextBtn" class="icon-btn flat" aria-label="次の曲">
+      <svg viewBox="0 0 24 24"><path d="M5 5.5v13l9-6.5z" fill="currentColor"/><path d="M18 5.5v13" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+    </button>
+    <div class="track">
+      <div class="title" id="trackTitle">—</div>
+      <div class="src" id="trackSrc"></div>
+    </div>
+    <label class="vol">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h4l5-4v13l-5-4H4z" fill="currentColor"/><path d="M16.5 9a4.2 4.2 0 0 1 0 6M19 6.5a7.8 7.8 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span class="visually-hidden">全体の音量</span>
+      <input id="vol" type="range" min="0" max="100" value="80">
+    </label>
+    <button id="settingsBtn" class="icon-btn flat" aria-label="設定" aria-expanded="false" aria-controls="drawer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.6" fill="var(--paper)"/><circle cx="15" cy="17" r="2.6" fill="var(--paper)"/></svg>
+    </button>
+  </section>
+</main>
+
+<aside id="drawer" class="drawer" aria-label="設定" inert>
+  <header>
+    <h2>設定</h2>
+    <button id="closeBtn" class="icon-btn flat" aria-label="設定を閉じる">
+      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </header>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-list" aria-selected="true" aria-controls="panel-list">曲のリスト</button>
+    <button role="tab" id="tab-mix" aria-selected="false" aria-controls="panel-mix">音のバランス</button>
+  </div>
+
+  <div class="panel" id="panel-list" role="tabpanel" aria-labelledby="tab-list">
+    <ol class="list" id="list"></ol>
+    <div class="add">
+      <input id="urlInput" type="text" placeholder="YouTube の動画・プレイリストの URL" aria-label="YouTube の URL">
+      <button id="addUrl" class="btn fill">追加</button>
+    </div>
+    <p class="msg" id="addMsg" aria-live="polite"></p>
+    <div class="row">
+      <button class="btn" id="addFile">手元の曲を追加</button>
+      <input type="file" id="fileInput" accept="audio/*" multiple class="visually-hidden" tabindex="-1">
+      <button class="btn" id="exportBtn">書き出す</button>
+      <button class="btn" id="importBtn">読み込む</button>
+      <input type="file" id="importInput" accept="application/json" class="visually-hidden" tabindex="-1">
+      <button class="btn" id="resetBtn">初期状態に戻す</button>
+    </div>
+    <p class="note">上から順に流します。YouTube に接続できないときは、同梱曲に切り替えて流し続けます。</p>
+  </div>
+
+  <div class="panel" id="panel-mix" role="tabpanel" aria-labelledby="tab-mix" hidden>
+    <div class="field"><label for="m-master">全体 <output data-for="m-master"></output></label><input id="m-master" type="range" min="0" max="100" value="80"></div>
+    <div class="field"><label for="m-bgm">音楽 <output data-for="m-bgm"></output></label><input id="m-bgm" type="range" min="0" max="100" value="60"></div>
+    <div class="field"><label for="m-crowd">店内のざわめき <output data-for="m-crowd"></output></label><input id="m-crowd" type="range" min="0" max="100" value="40"></div>
+    <div class="field"><label for="m-sfx">カウンターの作業音 <output data-for="m-sfx"></output></label><input id="m-sfx" type="range" min="0" max="100" value="70"></div>
+    <div class="field"><label for="m-interval">注文の間隔 <output data-for="m-interval"></output></label><input id="m-interval" type="range" min="1" max="20" value="5"></div>
+    <label class="check"><input type="checkbox" id="m-duck" checked> カクテルを作る間は音楽を少し下げる</label>
+  </div>
+</aside>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
